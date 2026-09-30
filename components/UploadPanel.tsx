@@ -13,8 +13,6 @@ export default function UploadPanel() {
     }
     return (
         <div className="flex justify-center mt-55">
-
-
             <label htmlFor="ChoosingImage">
                 <button className="bg-white text-black rounded border-2 font-bold border-red-400 p-2 ml-4 mx-2 cursor-pointer">Upload</button>
                 <input type="file" id="ChoosingImage" className="d-none" accept="image/*" onChange={handleFileChange} />
