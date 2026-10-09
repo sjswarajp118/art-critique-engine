@@ -63,12 +63,3 @@ export async function POST(request: Request) {
         return Response.json({ error: "Something Wrong on our side. Please try again" }, { status: 500 })
     }
 }
-
-
-
-// 1. read file + landmarks text from formData
-// 2. guard: file present and is a File      -> 400
-// 3. guard: type                            -> 415
-// 4. guard: size                            -> 413
-// 5. guard: landmarks (parse, then safeParse) -> 400
-// 6. NOW read the file into bytes

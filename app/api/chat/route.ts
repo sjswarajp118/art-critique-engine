@@ -13,7 +13,5 @@ export async function POST(request: Request) {
    return createUIMessageStreamResponse({
      stream: toUIMessageStream({stream: result.stream}),
    })
-
-   // return Response.json({message:"Recieved", body : body});
 }
 
