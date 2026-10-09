@@ -12,6 +12,7 @@
     "@ai-sdk/google": "^4.0.85",
     "@ai-sdk/openai": "^4.0.80",
     "@ai-sdk/react": "^4.0.125",
+    "@mediapipe/tasks-vision": "^1.0.1",
     "ai": "^7.0.122",
     "next": "16.3.6",
     "react": "19.2.8",

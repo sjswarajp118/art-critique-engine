@@ -33,9 +33,8 @@ export default function Chat() {
             {status === "submitted" && <p >AI is thinking...</p>}
 
 
-            <form className="fixed bg-black h-[20%] p-5 left-0 right-0 bottom-0" onSubmit={(e) => {
+            <form className="fixed bg-black h-[15%] p-5 left-0 right-0 bottom-0" onSubmit={(e) => {
                 e.preventDefault();
-                console.log(input);
                 if (isBusy || !input.trim()) return;
                 sendMessage({ text: input });
                 setInput("");
