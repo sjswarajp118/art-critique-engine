@@ -8,6 +8,7 @@ import { Critique, critiqueSchema, Landmarks } from "@/lib/schemas";
 import { extractLandmarks } from "@/lib/landmarks";
 import CritiqueView from "./CritiqueView";
 import PointsOverlay from "./PointsOverlay";
+import { distance, eyeTiltDegrees, measureProportions, midpoint, ratio } from "@/lib/geometry";
 
 //json helper
 async function readJsonSafely(response: Response) {
@@ -24,6 +25,7 @@ export default function UploadPanel() {
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [engineState, setEngineState] = useState<"idle" | "loading" | "ready" | "failed">("idle");
     const [landmarks, setLandmarks] = useState<Landmarks | null>(null);
+    const [showGuides, setShowGuides] = useState<boolean>(false);
 
     // the tool itself: survives re-renders, no repaint when set
     const landmarkerRef = useRef<FaceLandmarker | null>(null);
@@ -95,11 +97,16 @@ export default function UploadPanel() {
             return;
         }
 
+        console.log(measureProportions({...facepoints}, img.naturalWidth, img.naturalHeight));
+
+        
         setState({ status: "uploading" });
         const formData = new FormData();
         formData.append("image", file);
         formData.append("landmarks", JSON.stringify(facepoints));
+
         setLandmarks(facepoints);
+        setShowGuides(!showGuides);
         try {
             const response = await fetch('/api/critique', { method: "POST", body: formData });
             const data = await readJsonSafely(response)
@@ -177,26 +184,36 @@ export default function UploadPanel() {
                 <input type="file" id="ChoosingImage" className="" accept="image/*" onChange={handleFileChange} />
             </label>
 
-           { previewUrl && <PointsOverlay src={previewUrl} landmarks={landmarks} /> }
+            {previewUrl && <PointsOverlay src={previewUrl} landmarks={showGuides ? landmarks : null} />}
             <div>
                 <div className="flex gap-2 my-3">
                     <button disabled={!file || state.status === "uploading" || (state.status === "error" && state.kind === "client") || engineState === "loading"} onClick={handleAnalyse} className="bg-white text-black rounded border-2 font-bold border-red-400 p-2 ml-4 mx-2 cursor-pointer disabled:cursor-not-allowed disabled:bg-gray-400">Analyse</button>
-                    <button disabled={state.status === "uploading"} className="bg-white text-black rounded border-2 font-bold border-red-400 p-2 ml-4 mx-2 cursor-pointer" onClick={() => { setFile(null); setPreviewUrl(null); setState({ status: "idle" }) ,setLandmarks(null) }}>Reset</button>
+                    <button disabled={state.status === "uploading"} className="bg-white text-black rounded border-2 font-bold border-red-400 p-2 ml-4 mx-2 cursor-pointer" onClick={() => { setFile(null); setPreviewUrl(null); setState({ status: "idle" }), setLandmarks(null), setShowGuides(false) }}>Reset</button>
                 </div>
+
+                {landmarks &&
+                    <button className="bg-white text-black rounded border-2 font-bold border-red-400 p-2 ml-4 mx-2 cursor-pointer" onClick={() => setShowGuides(!showGuides)}>{showGuides ? "Hide Guides" : "Show Guides"}</button>
+
+                }
                 {state.status === "uploading" && <p>Uploading...</p>}
                 {state.status === "success" &&
-                    <CritiqueView data={state.critique} />
+
+                    <>
+                        <CritiqueView data={state.critique} />
+                    </>
                 }
                 {state.status === "error" &&
                     <div>
                         <p>{state.message}</p>
                         {state.kind === "client" ? (
-                            <button className="bg-white text-black rounded border-2 font-bold border-red-400 p-2 ml-4 mx-2 cursor-pointer" onClick={() => { setFile(null), setPreviewUrl(null), setState({ status: "idle" }) , setLandmarks(null) }} >Choose another image</button>
+                            <button className="bg-white text-black rounded border-2 font-bold border-red-400 p-2 ml-4 mx-2 cursor-pointer" onClick={() => { setFile(null), setPreviewUrl(null), setState({ status: "idle" }), setLandmarks(null) }} >Choose another image</button>
                         ) : (
                             <button className="bg-white text-black rounded border-2 font-bold border-red-400 p-2 ml-4 mx-2 cursor-pointer" onClick={handleAnalyse}>Retry</button>
                         )}
 
                     </div>}
+
+
             </div>
 
         </div>

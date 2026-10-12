@@ -9,7 +9,7 @@ export default function Chat() {
     const isBusy: boolean = status === "submitted" || status === "streaming";
 
     return (
-        <div className="flex flex-col p-5 text-center gap-4">
+        <div className="flex flex-col p-5 text-center gap-4 z-1">
 
             {messages.length === 0 && <p className="text-amber-100/70">Ask me anything to get started</p>}
             {messages.map(message =>
