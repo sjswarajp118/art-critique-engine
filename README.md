@@ -4,7 +4,7 @@ Upload a portrait drawing and get written feedback, with guide lines drawn on to
 
 > **Status:** work in progress. Weeks 1 to 4 are done and their gates are passed. Week 5 (hardening and tests) is next. Sections marked *Planned* are not built yet.
 
-docs\screenshot.png
+   ![A drawing with guide lines, the ratio card and the critique](docs/screenshot.png)
 
 The goal is feedback and insight, not fixing the drawing for you.
 
