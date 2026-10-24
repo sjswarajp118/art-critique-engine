@@ -10,7 +10,7 @@ export function validateFile(file:File) : string  | null{
 
     //guard for size
     if(file.size > MAX_SIZE){
-        return "The Image  must be under 5MB";
+        return "The Image  must be under 10 MB";
     }
     return null;
 }

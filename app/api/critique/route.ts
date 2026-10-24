@@ -1,7 +1,11 @@
 import { generateCritique } from "@/lib/critique"
-import { landmarkSchema } from "@/lib/schemas"
+import { measureProportions } from "@/lib/geometry"
+import { lookupMeasurement } from "@/lib/measure"
+import { judgeRatio } from "@/lib/ratioGuide"
+import { CritiqueResponse, frontFacingSchema, landmarkSchema } from "@/lib/schemas"
 import { ALLOWED_TYPES, MAX_SIZE } from "@/lib/upload"
 import { NoObjectGeneratedError } from "ai"
+import z from "zod"
 
 export async function POST(request: Request) {
     // 1. read file + landmarks text from formData
@@ -43,13 +47,44 @@ export async function POST(request: Request) {
         console.error("Landmark parsing failed:", landmarksResult.error.issues);
         return Response.json({ error: "Invalid landmarks format" }, { status: 400 })
     }
+
+    const sizeSchema = z.object({
+        width: z.coerce.number().int().positive().max(10000),
+        height: z.coerce.number().int().positive().max(10000),
+        frontFacing: frontFacingSchema,
+    })
+
+    const sizeResult = sizeSchema.safeParse({ width: formData.get("width"), height: formData.get("height"), frontFacing: formData.get("frontFacing") ?? "false" });
+    if (!sizeResult.success) {
+        console.error("Size parsing failed:", sizeResult.error.issues);
+        return Response.json({ error: "Invalid image size" }, { status: 400 })
+    }
+
+    const { width, height, frontFacing } = sizeResult.data
+
+
+    const proportions = measureProportions(landmarksResult.data, width, height);
+
+    const judgement = judgeRatio(proportions.eyeToNoseOverNoseToJaw, frontFacing);
+
+
     // 6. NOW read the file into bytes
     const bytes = await file.arrayBuffer();
     try {
-        const critique = await generateCritique(bytes, landmarksResult.data);
-        //  return the critique as a JSON response
-        return Response.json(critique)
+        const critique = await generateCritique(bytes, proportions, judgement);
+
+        if (judgement === "unusual" && critique.suggestions.length === 0) {
+            console.error("Critique contradicts the judgement: unusual but no suggestions");
+            return Response.json(
+                { error: "We couldn't complete the critique this time. Please try again." },
+                { status: 502 },
+            );
+        }
+
+        const body: CritiqueResponse = { critique, ratio: lookupMeasurement(proportions, "eyeToNoseOverNoseToJaw"), judgementRatio: judgement };
+        return Response.json(body);
     }
+
     catch (error) {
         // the helper throws,  the route decided the status
         if (NoObjectGeneratedError.isInstance(error)) {

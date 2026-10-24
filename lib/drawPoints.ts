@@ -11,7 +11,7 @@ export default function drawPoints(canvas: HTMLCanvasElement, landmarks: Landmar
 
     Object.values(landmarks).forEach(point => {
         ctx.beginPath();
-        ctx.arc(point.x *canvas.width, point.y *canvas.height, 5, 0 , 2* Math.PI);
+        ctx.arc(point.x *canvas.width, point.y *canvas.height, 3, 0 , 2* Math.PI);
         ctx.fill();  
     })
 }

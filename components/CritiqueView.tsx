@@ -1,32 +1,44 @@
 import type { Critique } from "@/lib/schemas";
 
-export default function CritiqueView({ data }: { data: Critique }) {
+export default function CritiqueView({ critique }: { critique: Critique }) {
     return (
-        <section className="mt-6 space-y-4 w-11/12 m-auto" >
-            {/* // The model's doubt about a measurement. It is an opinion, so it is worded as one. */}
-            {
-                // data.measurementWarning && (
-                //     <p className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900" >
-                //         The AI thinks a point may be off: {data.measurementWarning}
-                //     </p>
-                // )
+        <section className="space-y-5">
+            <h2 className="border-l-2 border-[#a39170] bg-[#f5f2eb] px-5 py-4 font-serif text-lg leading-7 text-[#38342d]">
+                {critique.summary}
+            </h2>
+
+
+            {critique.working.length > 0 &&
+                <div className="border-b border-[#e8e3d9] pb-5">
+
+                    <h3 className="text-[10px] font-medium uppercase tracking-[0.18em] text-[#82745f]">
+                        What&apos;s Working
+                    </h3>
+                    <ul className="mt-3 space-y-2 text-sm leading-6 text-[#5c584f]">
+                        {critique.working.map((working, index) => <li key={index}>— {working}</li>)}
+                    </ul>
+                </div>
             }
 
-            <h2 className="rounded-md bg-slate-100 p-4 text-lg text-black font-medium" > {data.summary} </h2>
-
-            < ul className="space-y-3 flex gap-3 flex-wrap" >
-                {
-                    data.suggestions.map((s, i) => (
-                        <li key={i} className="rounded-md  bg-slate-100 border p-4 flex-1 w-3/12" >
-                            <h3 className="text-orange-400 font-bold" > {s.title} </h3>
-                            < p className="mt-1 text-sm text-sky-700" > {s.detail} </p>
-                        </li>
-                    ))
-                }
-            </ul>
+            {
+                critique.suggestions.length === 0 ? (
+                    <p className="text-sm leading-6 text-[#777167]">No suggestions this time. That is not a verdict that the drawing is perfect.</p>
+                ) : (
+                    <ul className="grid gap-3 sm:grid-cols-2">
+                        {
+                            critique.suggestions.map((s, i) => (
+                                <li key={i} className="border border-[#e8e3d9] bg-white p-4">
+                                    <h3 className="font-serif text-base text-[#75664f]">{s.title}</h3>
+                                    <p className="mt-2 text-sm leading-6 text-[#666157]">{s.detail}</p>
+                                </li>
+                            ))
+                        }
+                    </ul>
+                )
+            }
 
             {/* Always visible: a missing warning must never read as "the points are fine". */}
-            <p className="text-xs text-slate-500" >
+            <p className="text-xs leading-5 text-[#817b70]">
                 Face points are found automatically and are not verified.
             </p>
         </section>

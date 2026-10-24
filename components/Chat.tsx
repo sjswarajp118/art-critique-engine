@@ -1,51 +1,97 @@
 "use client";
+
 import { useChat } from "@ai-sdk/react";
 import { useState } from "react";
 
 export default function Chat() {
-
     const [input, setInput] = useState("");
     const { messages, sendMessage, status, stop, error, regenerate } = useChat();
-    const isBusy: boolean = status === "submitted" || status === "streaming";
+    const isBusy = status === "submitted" || status === "streaming";
 
     return (
-        <div className="flex flex-col p-5 text-center gap-4 z-1">
+        <section className="flex min-h-[480px] flex-col overflow-hidden rounded-sm border border-[#ded9ce] bg-[#fcfbf8] shadow-[0_12px_36px_rgba(50,42,30,0.04)] lg:sticky lg:top-6">
+            <header className="border-b border-[#e8e3d9] px-5 py-5 sm:px-6">
+                <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#8a7a61]">Studio conversation</p>
+                <h2 className="mt-1 font-serif text-2xl text-[#302d27]">Ask the atelier</h2>
+                <p className="mt-2 text-sm leading-6 text-[#777167]">
+                    Talk through portrait proportions, tonal values, or your next drawing decision.
+                </p>
+            </header>
 
-            {messages.length === 0 && <p className="text-amber-100/70">Ask me anything to get started</p>}
-            {messages.map(message =>
-                <div className="flex flex-col items-start font-bold w-6/12 mx-auto my-3 p-4 text-black bg-gray-200" key={message.id}>
-                    <p className=""> {message.role === "user" ? "You" : "AI"}</p>
+            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6" aria-live="polite">
+                {messages.length === 0 && (
+                    <div className="border border-dashed border-[#d8d2c7] bg-[#f8f6f0] p-5">
+                        <p className="font-serif text-lg text-[#494438]">Begin with a question</p>
+                        <p className="mt-2 text-sm leading-6 text-[#777167]">
+                            For example: “How can I compare the spacing of the features in my portrait?”
+                        </p>
+                    </div>
+                )}
+                {messages.map((message) => (
+                    <article
+                        className={`max-w-[94%] border p-4 text-sm leading-6 ${
+                            message.role === "user"
+                                ? "ml-auto border-[#d9d0c0] bg-[#f2eee5] text-[#38342d]"
+                                : "border-[#e8e3d9] bg-white text-[#4d4941]"
+                        }`}
+                        key={message.id}
+                    >
+                        <p className="mb-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[#8a7a61]">
+                            {message.role === "user" ? "You" : "Atelier"}
+                        </p>
+                        {message.parts.map((part, index) =>
+                            part.type === "text" ? <p key={index}>{part.text}</p> : null
+                        )}
+                    </article>
+                ))}
 
-                    {message.parts.map((part, i) =>
-                        <p key={i}>{part.type === "text" ? <span>{part.text}</span> : null}</p>
-                    )}
+                {status === "submitted" && (
+                    <p className="text-sm italic text-[#777167]" role="status">Considering your question…</p>
+                )}
+
+                {error && (
+                    <div className="border border-[#e1c9c1] bg-[#fbf3ef] p-4 text-sm text-[#704539]" role="alert">
+                        <p>Something went wrong. Please try again.</p>
+                        <button className="mt-2 underline underline-offset-4" onClick={() => regenerate()}>
+                            Retry response
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            <form
+                className="border-t border-[#e8e3d9] bg-[#f8f6f0] p-4 sm:p-5"
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    if (isBusy || !input.trim()) return;
+                    sendMessage({ text: input });
+                    setInput("");
+                }}
+            >
+                <label htmlFor="studio-question" className="sr-only">Ask a question</label>
+                <div className="flex gap-2">
+                    <input
+                        id="studio-question"
+                        value={input}
+                        disabled={isBusy}
+                        className="min-w-0 flex-1 border border-[#d8d2c7] bg-white px-3 py-3 text-sm text-[#302d27] outline-none placeholder:text-[#a09a8e] focus:border-[#8d7d63] focus:ring-1 focus:ring-[#8d7d63] disabled:opacity-60"
+                        onChange={(event) => setInput(event.target.value)}
+                        placeholder="Ask about your study…"
+                    />
+                    <button
+                        type="submit"
+                        disabled={isBusy || !input.trim()}
+                        className="bg-[#292720] px-4 text-sm font-medium text-[#faf8f3] transition-colors hover:bg-[#494438] disabled:cursor-not-allowed disabled:bg-[#aaa69e]"
+                    >
+                        Send
+                    </button>
                 </div>
-            )}
-
-            {
-                error &&
-                <div className="text-red-500">
-                    <p>Something wnet wrong. Please try again</p>
-                    <button className="underline cursor-pointer" onClick={() => regenerate()}>Retry </button>
-                </div>
-            }
-
-            {status === "submitted" && <p >AI is thinking...</p>}
-
-
-            <form className="fixed bg-black h-[15%] p-5 left-0 right-0 bottom-0" onSubmit={(e) => {
-                e.preventDefault();
-                if (isBusy || !input.trim()) return;
-                sendMessage({ text: input });
-                setInput("");
-
-            }}>
-                <input value={input} disabled={isBusy} className="w-4/12 outline-0 py-3 px-4 border-2 rounded-l-2xl disabled:bg-gray-50" onChange={e => setInput(e.target.value)} placeholder="Ask me anything" />
-
-                <button type="submit" disabled={isBusy} className="p-3 mx-2 bg-amber-100 text-red-600 font-bold cursor-pointer rounded-r-2xl disabled:cursor-not-allowed">Send</button>
-
-                {isBusy && <button type="button" onClick={stop} className="p-3 mx-2 bg-red-300 text-white font-bold cursor-pointer">Stop</button>}
+                {isBusy && (
+                    <button type="button" onClick={stop} className="mt-3 text-xs text-[#75664f] underline underline-offset-4">
+                        Stop response
+                    </button>
+                )}
             </form>
-        </div>
-    )
+        </section>
+    );
 }
