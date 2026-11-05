@@ -1,5 +1,6 @@
 import { Proportions } from "./geometry";
 
+
 export const RATIO_GUIDE = {
     low: 0.39,
     high: 1.04,
@@ -10,7 +11,7 @@ export const RATIO_JUDGEMENTS = [
     "not-measured",
     "unusual",
     "nothing-unusual"
-]
+] as const
 
 // lib/ratioGuide.ts (or measureTool.ts)
 export const ALLOWED_MEASUREMENTS: Record<RatioJudgement,  readonly (keyof Proportions)[]> = {
@@ -22,7 +23,7 @@ export const ALLOWED_MEASUREMENTS: Record<RatioJudgement,  readonly (keyof Propo
 
 export function judgeRatio(ratio: number | null, frontFacing: boolean): RatioJudgement {
     if (!frontFacing) return "not-front-facing";
-    if (ratio === null) return "not-measured";
+    if (ratio === null || !Number.isFinite(ratio)) return "not-measured";
     if (ratio < RATIO_GUIDE.low || ratio > RATIO_GUIDE.high) return "unusual";
     return "nothing-unusual";
 }

@@ -1,4 +1,5 @@
 import { generateCritique } from "@/lib/critique"
+import { describeError } from "@/lib/errors"
 import { measureProportions } from "@/lib/geometry"
 import { lookupMeasurement } from "@/lib/measure"
 import { judgeRatio } from "@/lib/ratioGuide"
@@ -90,11 +91,11 @@ export async function POST(request: Request) {
         if (NoObjectGeneratedError.isInstance(error)) {
 
             //log details on the server only
-            console.log("Critique failed schema:", error.cause, error.text);
+            console.log("Critique failed schema:", describeError(error));
 
             return Response.json({ error: "We couldnt write the crtique this time. Please try again" }, { status: 502 })
         }
-        console.error("Critique failed:", error);
+        console.error("Critique failed:", describeError(error));
         return Response.json({ error: "Something Wrong on our side. Please try again" }, { status: 500 })
     }
 }

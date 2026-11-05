@@ -19,7 +19,7 @@ export default function PointsOverlay({ src, landmarks }: { src: string, landmar
         drawPoints(canvas, landmarks);
     }
     useEffect(() => {
-        if (!imageRef || !canvasRef) return;
+        if (imageRef.current || canvasRef.current) return;
         const observer = new ResizeObserver(() => {
             syncCanvas();
         });

@@ -59,7 +59,7 @@ export default function UploadPanel() {
         }
         catch {
             // ensureLandmarker already logged the real error and set engineState to "failed"
-            setState({ status: "error", kind: "server", message: "Couldnt get the face finder ready. Please try again" });
+            setState({ status: "error", kind: "network", message: "Couldnt get the face finder ready. Check your connection and please try again" });
             return;
         }
         // turn the File into a loaded image element
@@ -91,16 +91,12 @@ export default function UploadPanel() {
             }
 
             facepoints = extracted.data;
-
-            console.log("landmarks:", facepoints, "image size:", img.naturalWidth, img.naturalHeight);
         }
         catch (error) {
             console.error("Error during landmark extraction:", error);
             setState({ status: "error", kind: "client", message: "We couldnt analyse the image. Please choose another image" });
             return;
         }
-
-        console.log(measureProportions({ ...facepoints }, img.naturalWidth, img.naturalHeight));
 
         setState({ status: "uploading" });
         const formData = new FormData();
@@ -117,7 +113,7 @@ export default function UploadPanel() {
             const data = await readJsonSafely(response)
 
             if (!response.ok) {
-                const isServer = response.status >= 500;
+                const isServer = response.status >= 500 || response.status === 429;
                 setState({ status: "error", kind: isServer ? "server" : "client", message: data?.error ?? (isServer ? "Something went wrong" : "The image couldn't be accepted") });
                 return;
             }
@@ -145,7 +141,6 @@ export default function UploadPanel() {
     async function ensureLandmarker() {
         if (landmarkerRef.current) return landmarkerRef.current;
         setEngineState("loading");
-        console.log("Loading Engine");
         try {
             const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision")
 
