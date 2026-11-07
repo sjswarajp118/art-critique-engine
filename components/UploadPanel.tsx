@@ -145,7 +145,7 @@ export default function UploadPanel() {
         try {
             const { FaceLandmarker, FilesetResolver } = await import("@mediapipe/tasks-vision")
 
-            const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm");
+            const vision = await FilesetResolver.forVisionTasks("/mediapipe/wasm");
             const landmarkerInstance = await FaceLandmarker.createFromOptions(vision, {
                 baseOptions: { modelAssetPath: "/models/face_landmarker.task" },
                 runningMode: "IMAGE",
