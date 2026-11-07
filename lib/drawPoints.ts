@@ -3,15 +3,18 @@ import type { Landmarks } from "./schemas";
 export default function drawPoints(canvas: HTMLCanvasElement, landmarks: Landmarks | null) {
     const ctx = canvas.getContext("2d")
 
-    if (!ctx) return;
+    if (!ctx) {
+        throw new Error("Failed to get canvas context");
+    }
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "red";
-    if(!landmarks) return;
+    if (!landmarks) return;
 
     Object.values(landmarks).forEach(point => {
         ctx.beginPath();
-        ctx.arc(point.x *canvas.width, point.y *canvas.height, 3, 0 , 2* Math.PI);
-        ctx.fill();  
+        ctx.arc(point.x * canvas.width, point.y * canvas.height, 3, 0, 2 * Math.PI);
+        ctx.fill();
     })
+
 }

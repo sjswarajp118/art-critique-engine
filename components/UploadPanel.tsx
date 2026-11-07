@@ -11,6 +11,7 @@ import PointsOverlay from "./PointsOverlay";
 import { distance, eyeTiltDegrees, measureProportions, midpoint, ratio } from "@/lib/geometry";
 import { lookupMeasurement } from "@/lib/measure";
 import RatioCard from "./RatioCard";
+import CanvasBoundary from "./CanvasBoundary";
 
 //json helper
 async function readJsonSafely(response: Response) {
@@ -177,7 +178,7 @@ export default function UploadPanel() {
         // C. Validate BEFORE accepting
         const problem = validateFile(selectedFile)
         if (problem) {
-            setState({ status: "error", kind: "client", message: problem})
+            setState({ status: "error", kind: "client", message: problem })
             e.target.value = "";
             return
         }
@@ -207,9 +208,8 @@ export default function UploadPanel() {
 
             <label
                 htmlFor="ChoosingImage"
-                className={`group flex cursor-pointer flex-col items-center justify-center border border-dashed border-[#cfc7b9] bg-[#f8f6f0] px-5 text-center transition-colors hover:border-[#8d7d63] hover:bg-[#f4f0e7] focus-within:ring-2 focus-within:ring-[#8d7d63] ${
-                    previewUrl ? "py-3" : "min-h-56 py-10"
-                }`}
+                className={`group flex cursor-pointer flex-col items-center justify-center border border-dashed border-[#cfc7b9] bg-[#f8f6f0] px-5 text-center transition-colors hover:border-[#8d7d63] hover:bg-[#f4f0e7] focus-within:ring-2 focus-within:ring-[#8d7d63] ${previewUrl ? "py-3" : "min-h-56 py-10"
+                    }`}
             >
                 <span className="mb-3 flex size-11 items-center justify-center rounded-full border border-[#d7cfc1] font-serif text-xl text-[#766950]" aria-hidden="true">
                     {previewUrl ? "+" : "↥"}
@@ -232,7 +232,15 @@ export default function UploadPanel() {
             {previewUrl && (
                 <div className="mt-5 grid gap-4 sm:grid-cols-[minmax(0,1fr)_200px] sm:items-start">
                     <div className="flex min-h-64 items-center justify-center overflow-hidden border border-[#e4dfd5] bg-[#f1eee7] p-3">
-                        <PointsOverlay src={previewUrl} landmarks={showGuides ? landmarks : null} />
+
+                        <CanvasBoundary key={previewUrl} fallback={
+                            <div>
+                                <img className="w-full max-w-md" src={previewUrl} alt="" />
+                                <p role="status" className="mt-2 text-sm text-[#817b70]">The guides can't be shown for this image. You can still analyze the portrait.</p>
+                            </div>
+                        }>
+                            <PointsOverlay src={previewUrl} landmarks={showGuides ? landmarks : null} />
+                        </CanvasBoundary>
                     </div>
                     <label className="flex cursor-pointer items-start gap-3 border border-[#e4dfd5] bg-white p-4 text-sm leading-5 text-[#625e55]">
                         <input
