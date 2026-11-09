@@ -4,12 +4,10 @@ import React, { useEffect, useRef, useState } from "react"
 import { validateFile } from "@/lib/upload";
 import { FaceLandmarker } from "@mediapipe/tasks-vision";
 import { loadImage } from "@/lib/image";
-import { Critique, CritiqueResponse, critiqueResponseSchema, critiqueSchema, Landmarks, Measurement } from "@/lib/schemas";
+import { CritiqueResponse, critiqueResponseSchema, Landmarks } from "@/lib/schemas";
 import { extractLandmarks } from "@/lib/landmarks";
 import CritiqueView from "./CritiqueView";
 import PointsOverlay from "./PointsOverlay";
-import { distance, eyeTiltDegrees, measureProportions, midpoint, ratio } from "@/lib/geometry";
-import { lookupMeasurement } from "@/lib/measure";
 import RatioCard from "./RatioCard";
 import CanvasBoundary from "./CanvasBoundary";
 
@@ -269,7 +267,7 @@ export default function UploadPanel() {
                 <button
                     disabled={state.status === "uploading"}
                     className="min-h-11 border border-[#d8d2c7] px-4 text-sm text-[#5f5b52] transition-colors hover:bg-[#f4f1ea] disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={() => { setFile(null); setPreviewUrl(null); setState({ status: "idle" }), setLandmarks(null), setShowGuides(!showGuides) }}
+                    onClick={() => { setFile(null); setPreviewUrl(null); setState({ status: "idle" }); setLandmarks(null); }}
                 >
                     Reset
                 </button>
