@@ -1,15 +1,22 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Chat() {
     const [input, setInput] = useState("");
     const { messages, sendMessage, status, stop, error, regenerate } = useChat();
     const isBusy = status === "submitted" || status === "streaming";
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() =>{
+        const el = scrollRef.current;
+        if(!el) return;
+        el.scrollTo({top: el.scrollHeight, behavior: "smooth"});
+    }, [messages]);
 
     return (
-        <section className="flex min-h-[480px] flex-col overflow-hidden rounded-sm border border-[#ded9ce] bg-[#fcfbf8] shadow-[0_12px_36px_rgba(50,42,30,0.04)] lg:sticky lg:top-6">
+        <section className="flex h-140 min-h-120 max-h-[80vh] flex-col overflow-hidden rounded-sm border border-[#ded9ce] bg-[#fcfbf8] shadow-[0_12px_36px_rgba(50,42,30,0.04)] lg:sticky lg:top-6">
             <header className="border-b border-[#e8e3d9] px-5 py-5 sm:px-6">
                 <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-[#8a7a61]">Studio conversation</p>
                 <h2 className="mt-1 font-serif text-2xl text-[#302d27]">Ask the atelier</h2>
@@ -18,7 +25,7 @@ export default function Chat() {
                 </p>
             </header>
 
-            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6" aria-live="polite">
+            <div className="flex-1 space-y-4 overflow-y-auto px-5 py-5 sm:px-6" aria-live="polite" ref={scrollRef}>
                 {messages.length === 0 && (
                     <div className="border border-dashed border-[#d8d2c7] bg-[#f8f6f0] p-5">
                         <p className="font-serif text-lg text-[#494438]">Begin with a question</p>
@@ -40,7 +47,7 @@ export default function Chat() {
                             {message.role === "user" ? "You" : "Atelier"}
                         </p>
                         {message.parts.map((part, index) =>
-                            part.type === "text" ? <p key={index}>{part.text}</p> : null
+                            part.type === "text" ? <p className="whitespace-pre-line" key={index}>{part.text}</p> : null
                         )}
                     </article>
                 ))}
