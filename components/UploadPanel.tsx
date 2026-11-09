@@ -235,6 +235,7 @@ export default function UploadPanel() {
 
                         <CanvasBoundary key={previewUrl} fallback={
                             <div>
+                                {/* eslint-disable-next-line @next/next/no-img-element -- local preview of the user's file; no server optimisation applies */}
                                 <img className="w-full max-w-md" src={previewUrl} alt="" />
                                 <p role="status" className="mt-2 text-sm text-[#817b70]">The guides can’t be shown for this image. You can still analyse it.</p>
                             </div>
