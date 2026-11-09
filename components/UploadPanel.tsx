@@ -236,7 +236,7 @@ export default function UploadPanel() {
                         <CanvasBoundary key={previewUrl} fallback={
                             <div>
                                 <img className="w-full max-w-md" src={previewUrl} alt="" />
-                                <p role="status" className="mt-2 text-sm text-[#817b70]">The guides can't be shown for this image. You can still analyze the portrait.</p>
+                                <p role="status" className="mt-2 text-sm text-[#817b70]">The guides can’t be shown for this image. You can still analyse it.</p>
                             </div>
                         }>
                             <PointsOverlay src={previewUrl} landmarks={showGuides ? landmarks : null} />

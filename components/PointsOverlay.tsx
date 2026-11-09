@@ -44,8 +44,8 @@ export default function PointsOverlay({ src, landmarks }: { src: string, landmar
             <canvas ref={canvasRef} className="absolute left-0 top-0" />
 
             {drawFailed && landmarks && (
-                <div className="absolute left-0 top-0 w-full h-full flex items-center justify-center bg-red-500/50 bg-opacity-50 text-white">
-                    <p  role="status" className="px-4">We found the face points but couldn’t draw them on your photo. Your critique isn’t affected.</p>
+                <div className="absolute left-0 top-0 w-full h-full flex items-center justify-center bg-red-500/50 text-white">
+                    <p  role="status" className="px-4">The guides couldn’t be drawn on this image. Your critique is not affected.</p>
                 </div>
             )}
         </div>
