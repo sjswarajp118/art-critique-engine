@@ -4,7 +4,14 @@ import { convertToModelMessages, createUIMessageStreamResponse, streamText, toUI
 
 export async function POST(request: Request) {
 
-   const {messages}: {messages :UIMessage[]} = await request.json();
+
+   let body: unknown;
+   try {
+      body = await request.json();
+   } catch {
+      return Response.json({ error: "The request could not be read." }, { status: 400 });
+   }
+   const { messages } =body as { messages: UIMessage[] }
    const result = streamText({
       model: google("gemini-3.1-flash-lite"),
       instructions: CHAT_INSTRUCTIONS,
@@ -14,7 +21,8 @@ export async function POST(request: Request) {
    })
 
    return createUIMessageStreamResponse({
-     stream: toUIMessageStream({stream: result.stream}),
+      stream: toUIMessageStream({ stream: result.stream }),
    })
+
 }
 
