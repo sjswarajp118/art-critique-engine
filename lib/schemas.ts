@@ -58,7 +58,7 @@ export const chatRequestSchema = z.looseObject({
   messages: z.array(
     z.looseObject({
       role: z.enum(["user", "assistant"]),
-      parts: z.array(z.discriminatedUnion("type", [textPart, stepStartPart])),
+      parts: z.array(z.discriminatedUnion("type", [textPart, stepStartPart])).min(1),
     })
   ).min(1).max(40),
 });
