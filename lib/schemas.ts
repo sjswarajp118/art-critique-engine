@@ -48,6 +48,21 @@ export const critiqueResponseSchema = z.object({
   judgementRatio: z.enum(RATIO_JUDGEMENTS), 
 })
 
+const textPart = z.looseObject({
+  type: z.literal("text"),
+  text: z.string().max(4000),
+});
+const stepStartPart = z.looseObject({ type: z.literal("step-start") });
+
+export const chatRequestSchema = z.looseObject({
+  messages: z.array(
+    z.looseObject({
+      role: z.enum(["user", "assistant"]),
+      parts: z.array(z.discriminatedUnion("type", [textPart, stepStartPart])),
+    })
+  ).min(1).max(40),
+});
+
 export type CritiqueResponse = z.infer<typeof critiqueResponseSchema> 
 
 export type Measurement = z.infer<typeof measurementSchema>
