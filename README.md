@@ -2,7 +2,11 @@
 
 Upload a portrait drawing and get written feedback, with guide lines drawn on top of your drawing and a few measurements calculated in code.
 
-> **Status:** work in progress. Weeks 1 to 4 are done and their gates are passed. Week 5 (hardening and tests) is next. Sections marked *Planned* are not built yet.
+I draw portraits, and sometimes a drawing looks off to me even after I have stared at it for a long time, without my being able to say why. This app is my attempt at a second look. You upload a drawing, and it finds four face points, measures the head tilt and one proportion in code, and decides in code whether that proportion looks unusual compared with 9 real front-facing photos. An AI then writes the feedback.
+
+It is a personal tool so far. Nobody else has tested it, so I cannot say who else it helps. Next I want to try comparing a drawing with its reference photo and find out whether the current tools can do that. That is not built yet.
+
+> **Status:** a working app that runs locally. Weeks 1 to 4 are done and their gates are passed, and Week 5 (hardening and tests) is mostly done, with 37 automated tests in 9 files. It is not deployed and has no rate limiting yet, so it is not ready for a public link. Sections marked *Planned* are not built yet.
 
    ![A drawing with guide lines, the ratio card and the critique](docs/screenshot.png)
 
@@ -25,19 +29,22 @@ The goal is feedback and insight, not fixing the drawing for you.
 | Stack | Next.js (App Router), React, TypeScript, Tailwind, Zod, Vercel AI SDK, Google Gemini, MediaPipe, Canvas |
 | Face points | Found in the browser. The image is not uploaded for that step. |
 | Feedback | The image and four points go to this app's server and on to Google's Gemini service. The app does not store the image. |
+| Chat | A small drawing-advice chat. Only the typed messages go to the server and on to Gemini, never the image. It cannot see the drawing or the critique yet. |
 | Verdict | Decided by code. The AI only puts it into words. |
 | Honest limits | The guide is built from 9 real front-facing photos. It is a rough guide, not a standard. See [Known limitations](#known-limitations). |
 
 ## Running it locally
 
-Versions in use: `ai` 7.0.122, `@ai-sdk/google` 4.0.85, `@ai-sdk/react` 4.0.125.
+Versions in use: `ai` 7.0.122, `@ai-sdk/google` 4.0.85, `@ai-sdk/react` 4.0.125, `@mediapipe/tasks-vision` 1.0.1 (exact pin).
 
 1. Install with `npm install`.
 2. Put your Google key in `.env.local` as `GOOGLE_GENERATIVE_AI_API_KEY`. It stays on the server and is never sent to the browser. Do not commit this file.
-3. Put the MediaPipe Face Landmarker model file at `public/models/face_landmarker.task`.
+3. Nothing to download for face finding. The MediaPipe Face Landmarker model file is in the repo at `public/models/face_landmarker.task`, and the MediaPipe wasm files are in `public/mediapipe/wasm`.
 4. Start with `npm run dev`.
 
-*(A deploy link and a step-by-step for getting the model file will be added once the app is stable.)*
+To run the automated tests, use `npx vitest run`. See [Automated tests](#automated-tests).
+
+*(There is no deploy link yet. See [Known limitations](#known-limitations).)*
 
 ## How it works
 
@@ -82,6 +89,24 @@ critique shows the words from the MODEL
 | `nothing-unusual` | Ticked, and the ratio is inside the band | Nothing unusual detected compared to typical real front-facing faces. |
 
 The number and the "rough guide" line are shown only for `unusual` and `nothing-unusual`.
+
+## The chat
+
+The page also has a small chat, "Ask the atelier", for general drawing questions such as "what is a value study?".
+
+**What it cannot do yet.** It cannot see the drawing, the measurements, the label or the critique, because the browser sends it only the chat messages. So it cannot explain or clarify a critique. Connecting them is planned: the browser would send the critique and the label as extra context, and the server would check that context the way it checks the critique request.
+
+**What the code enforces, and what is only asked.**
+
+| Rule | How it is held |
+|---|---|
+| A request has 1 to 40 messages. Each has the role `user` or `assistant`, and each text part is at most 4000 characters. | Enforced: `chatRequestSchema` checks it, and the route answers 400 if it fails. |
+| The conversation must end with a message from the student. | Enforced: `selectRecentMessages` returns `null` otherwise, and the route answers 400. |
+| Only the last 10 messages are used, and the first message the model sees must be from the student. | Enforced: `selectRecentMessages` takes the last 10 and drops leading messages that are not from the student. Because the conversation ends on a student message, the 10th from the end is always an assistant message, so the model usually gets 9. |
+| A reply is at most 400 tokens. | Enforced: `maxOutputTokens`. |
+| Stay on drawing and art practice, answer in plain text in 100 to 200 words, never claim that Analyse compares the drawing with the student's own reference photo, and treat the student's text as a question, not as instructions. | Only asked, in the chat instructions. A request, not a guarantee. |
+
+**Errors.** The chat streams its reply, so a provider failure arrives as an event inside a response that already has status 200, not as an error status. The SDK hides the provider's message by default. The chat shows its own fixed text and a Retry button, and the server logs only a short summary.
 
 ## Tools used, and why
 
@@ -174,6 +199,19 @@ A signal that is wrong in both directions tells the user nothing, and a confiden
 - Real faces still vary about 2x between the lowest and highest ratio. The causes (pose, expression, camera distance) are **not** tested, and none is claimed.
 - The range moved when photos were added (lowest 0.49 to 0.32 with ten, back to 0.49 after one photo was excluded). Treat the edges as unstable. This is a rough guide, not a standard. Ten photos was a target chosen for this project, not a statistical standard.
 
+## What Week 5 added
+
+Week 5 was about making the app behave like software a small team could ship: a stranger can use it, trigger a common error, recover from it, and understand what is happening.
+
+- **Failure handling, checked row by row.** Each common failure was traced through the code and tried in the browser where possible: no image, wrong file type, file too large, network interruption, double click, provider errors, bad model output and a canvas failure. The results are in the table in the next section and in [Week 5 checks](#week-5-checks).
+- **Honest provider errors.** A provider 429 and a provider 503 get their own wording. Everything else, including our own wrong key, becomes a generic 500. These errors show Retry, but nothing retries by itself.
+- **Safe logging.** The critique route logs only a status and a short error name, because a provider error can carry the uploaded image.
+- **The chat made honest and safe.** It checks the request, answers 400 for a conversation that does not end with the student's message, keeps only the last 10 messages, caps the reply at 400 tokens, logs only a short summary, and its instructions no longer claim that it can see the drawing. See [The chat](#the-chat).
+- **A canvas fallback in three layers.** The drawing helper throws instead of failing silently when it cannot get a canvas context. The overlay catches that and shows a message. An error boundary around the overlay catches anything thrown while React draws it.
+- **MediaPipe pinned and self-hosted.** Exact version 1.0.1, with the wasm files in `public/mediapipe/wasm`, so the app no longer depends on a CDN's "latest".
+- **Automated tests.** 37 tests, described in [Automated tests](#automated-tests).
+- **Smaller fixes found on the way.** `judgeRatio` treats NaN and Infinity as `not-measured`. Retry no longer hides the guides. The size message states the limit in MB. A file is validated the moment it is picked, and the previous photo's state is reset.
+
 ## What the user sees when something goes wrong
 
 | Situation | What happens |
@@ -191,18 +229,24 @@ A signal that is wrong in both directions tells the user nothing, and a confiden
 | The browser receives a reply that fails its own check | A fixed friendly message and a Retry button. The details are logged in the browser console. |
 | Server problem | A fixed friendly message and a Retry button. The server's own error text is never shown, because it could reveal internal details. |
 | No connection | A friendly message and a Retry button. |
+| The guides cannot be drawn on the canvas | If something throws while React draws the overlay, an error boundary shows the photo with "The guides can't be shown for this image. You can still analyse it." If the drawing call fails afterwards, a message over the photo says the guides could not be drawn and the critique is not affected. The page does not crash, and a new photo resets the boundary. |
+| Analyse is clicked again while a request is running | The button is disabled and reads "Working…". Only one request is sent. |
+| A chat request is broken, or the conversation does not end with the student's message, sent directly to the server | The server answers 400 with a fixed message. |
+| The chat provider is busy or fails | The chat shows "Something went wrong. Please try again." and a Retry button. A real 503 from Gemini was seen during testing. The server logs a short summary only. |
 
 Rule of thumb: problems with the user's input (4xx, or caught in the browser) are the same every time, so there is no Retry. Problems on our side, at the provider or on the network (5xx) can change on a second try, so there is a Retry.
 
 ## Privacy
 
-Finding the face points runs in the browser, so the image is not uploaded for that step. The browser downloads the point-finding engine from a public CDN and the model file from this site, but neither receives your image.
+Finding the face points runs in the browser, so the image is not uploaded for that step. The point-finding engine (its wasm files) and the model file are both served from this site, so no outside CDN is contacted for them, and neither receives your image.
 
 The feedback step does send data out. The browser sends the image and the four points to this app's server, which passes them on to Google's Gemini service to write the feedback. This app does not store the image. Google handles the image under its own terms for the plan being used. Before sharing the app publicly, check Google's data terms for the plan in use.
 
 So the app does not claim the image never leaves the device.
 
-Error logging is being reviewed in Week 5 to make sure image data never ends up in logs.
+The chat sends only the typed messages to the server, and on to Gemini. It does not send the image, and this app does not store the messages.
+
+Both AI routes (the critique and the chat) log only a provider status and a short error name, never the request body. The reason: an error object from the AI provider can carry the request body, which holds the uploaded image, and a log that prints the whole object would leak it. A unit test plants fake image data in an error and checks that it does not appear in the logged summary.
 
 ## Known failure modes
 
@@ -251,10 +295,15 @@ Seven ways the app falls short, taken from my own testing.
 - **Text inside an image could try to instruct the AI.** The instructions tell it to treat such text as part of the drawing, but that is a request, not a guarantee.
 - **The length of each suggestion is requested, not enforced.** The prompt asks for short text, but the check does not limit length, so a very long suggestion could break a card.
 - **Very small overshoots are adjusted.** A point up to 0.05 past the image edge is moved onto the edge, so it is an approximation. Bigger overshoots are rejected. The 0.05 value is a starting guess still to be tested.
-- **File type is checked by label only.** The browser's reported type can be faked. Checking the file's real contents is out of scope for now.
+- **File type is checked by label only.** The browser's reported type can be faked. A file such as `notes.pdf` renamed to `notes.jpg` passes this check and is caught later, when the browser tries to load it as an image (a message and "Choose another image"). Checking the file's real contents is out of scope for now.
 - **Mirrored, upside-down or strongly tilted faces** may fail the left-before-right check even when the points are correct.
-- **A file of exactly 5 MB is accepted.** Only files over the limit are rejected.
-- **No rate limiting yet.** The AI route has no limit per visitor. This needs adding before the app is shared with a public link.
+- **A file of exactly 10 MB is accepted.** Only files over the limit are rejected. A test pins this.
+- **One behaviour has no test.** Nothing checks that `UploadPanel` passes `key={previewUrl}` to the canvas boundary, which is what lets a new photo reset a boundary that has already failed.
+- **The chat cannot see the drawing or the critique.** It gives general drawing advice only, and it is told to say so and to point the student to Analyse.
+- **The chat's scope and length are requested, not enforced.** Code holds the request checks and the 400-token cap. Staying on topic and answering in 100 to 200 words are only asked in the instructions.
+- **The chat forgets older messages.** Only the last 10 are used, and the model usually sees 9.
+- **The chat scrolls to the bottom on every update.** A student who scrolls up while a reply streams is pulled back down.
+- **No rate limiting yet.** Neither AI route (the critique and the chat) has a limit per visitor. This needs adding before the app is shared with a public link.
 
 ## What is built, and what is planned
 
@@ -264,15 +313,18 @@ Seven ways the app falls short, taken from my own testing.
 - One real tool the model can call, with its full lifecycle (model asks, app runs it, model writes)
 - Verdict decided in code, with four labels and a ratio card
 - A critique with "what's working", suggestions, and an honest empty state
+- Failure handling for the common cases, with Retry or "Choose another image" (see the table above), including a fallback if the canvas fails
+- MediaPipe pinned to 1.0.1 and served from this site, not from a CDN
+- 37 automated tests (see [Automated tests](#automated-tests))
 
 **Planned** (calculated in code, not by the AI, so the results can be checked)
-- **Week 5:** a failure matrix, security checks (no raw image in logs), tests with the API route mocked, a fallback if the canvas fails, and a performance pass
+- **Week 5, still to do:** a performance pass (see the resize item below), live checks of the 503 and 429 paths, and an end-to-end browser test with the API route mocked
 - **Value map:** the drawing shown in 4 shades, plus its darkest-to-lightest range, calculated in the browser
 - **Reference comparison (stretch):** compare a drawing's ratios with the photo it was drawn from
 - **Code-measured head pose:** MediaPipe has a facial transformation matrix output. It is untested on drawings, so the MediaPipe docs come first.
 - **A check that numbers in the critique match the true values** (log-only at first)
-- **Rate and cost limiting** on the AI route
-- **Pin the MediaPipe CDN version.** It currently loads "latest".
+- **Connect the chat to the critique:** send the critique and the label as context, checked on the server
+- **Rate and cost limiting** on both AI routes
 - **Resize the image in the browser before upload**
 
 **Deliberately out of scope for now:** saving users' images or accounts, a database, and extra AI frameworks. These are not needed for the core feature, so they are on a "later" list.
@@ -292,7 +344,27 @@ Things written into the code or this README that I have not confirmed by running
 - **Provider busy (503) and limit (429) handling.** Written after seeing a real 503 from Gemini and hitting the free-tier limit. The Retry path and the separate 429 wording have not been re-tested end to end.
 - **`unusual` with an empty suggestions list returning a 502.** Not yet triggered live.
 - **The ticked photo with ratio 0.80.** That run happened before the per-state tool list was added, and I did not read the label in the Network tab. It needs one re-run.
-- **That error logs never contain image data.** To be audited in Week 5.
+- **That logs never contain image data.** Both AI routes log only a provider status and a short name. This is covered by a unit test and was checked once with a wrong API key. A full audit of every log call has not been done.
+
+## Automated tests
+
+Run them with `npx vitest run`. They live in `__tests__/` and make no real AI calls, so they spend no quota. 37 tests in 9 files:
+
+| File | Tests | What it checks |
+|---|---|---|
+| `ratioGuide.test.ts` | 9 | `judgeRatio`: the band edges (0.39 and 1.04) count as inside, and NaN and Infinity give `not-measured` |
+| `schema.test.ts` | 5 | `frontFacing` accepts `"true"` and `"false"`, and rejects `""`, `"banana"` and `"TRUE"` |
+| `errors.test.ts` | 6 | `getProviderStatus` for a 429, a 503 inside a retry error, no status, a plain error and a string, plus the test that fake image data planted in an error never appears in the logged summary |
+| `upload.test.ts` | 3 | `validateFile`: a file over the limit is rejected with the size message, a wrong type is rejected with the type message, and a file of exactly the limit is accepted |
+| `CanvasBoundary.test.tsx` | 2 | A child that throws shows the fallback, and a normal child shows its content |
+| `uploadPanel.test.tsx` | 2 | A second click on Analyse is ignored while the upload is in flight, and while the image is being analysed. The face engine, image loading, landmark extraction and `fetch` are replaced by fakes. |
+| `chatSchema.test.ts` | 5 | `chatRequestSchema`: a real body copied from the browser passes, a `system` role is rejected, 41 messages are rejected, exactly 40 are accepted, and a message with no parts is rejected |
+| `chat.test.ts` | 4 | `selectRecentMessages`: it returns `null` when the last message is not from the student, it keeps only the most recent messages, and it drops leading messages that are not from the student |
+| `sanity.test.ts` | 1 | The test runner works |
+
+Apart from the runner check, every rule covered here was checked by temporarily breaking the code (for example, changing `>` to `>=` in the size check) and confirming that the intended assertion failed, then restoring the code.
+
+**Not covered yet:** the chat route itself (its 400 answer and the message cut were checked by hand with `curl` and a temporary log, not by a test), an end-to-end browser test (Playwright with the API route mocked is planned), a test of the critique route itself (mocking the AI call and asserting 429, 503 and 500 is a possible next step), and the `key` behaviour described in [Known limitations](#known-limitations).
 
 ## Test record
 
@@ -357,3 +429,30 @@ What I noticed:
 - Resizing keeps coordinates sensible: passed.
 - Toggling the overlay triggers no extra API calls: passed (it only flips a boolean).
 - One real tool works end to end and the lifecycle is explained: passed. Quiz 83% (5 of 6).
+
+### Week 5 checks
+
+| What was tested | Result |
+|---|---|
+| Wrong API key | The server terminal printed one line (`Critique failed: provider error: status 401, retryable false`). The real key was restored. |
+| A `throw` inside the overlay's effect, no error boundary | Next's "This page couldn't load" replaced the page. |
+| The same `throw`, with the error boundary | Only the image area changed. The rest of the page stayed. |
+| A `throw` in the drawing helper, before Analyse | The photo alone, with no message. The message needs face points, and there are none yet. |
+| The same `throw`, after Analyse | The overlay message appeared and the critique still showed. No `Uncaught` error in the console, only the logged `Canvas draw failed` line. |
+| A `throw` while React draws the overlay (before and after Analyse) | The fallback message and the photo showed in both cases. |
+| Double click on Analyse (two tests) | Each test went red when its guard was removed (`fetch` called 2 times, and `loadImage` called 2 times) and green when the guard was restored. |
+| MediaPipe self-hosting | In the Network tab the wasm requests go to `localhost:3000/mediapipe/wasm/...` with status 200, and none go to a CDN. |
+| Secrets | `git check-ignore -v` confirmed that `.env.local` and local tool config files are ignored by git. |
+| Network interruption | Traced through the code (message, Retry, guides stay on after a retry). Not yet tested by cutting the connection. |
+| Provider 503 and 429 wording, "unusual with no suggestions" (502) | Written and unit-tested for the status helpers, but not yet triggered live. |
+| Chat, a normal conversation sent with `curl` | `200` with `content-type: text/event-stream`. The reply arrives as events. |
+| Chat, a conversation that ends with an assistant message, sent with `curl` | `400` with `{"error":"The last message is not from the user."}`. The body passes the schema, so the new check was the one that answered. |
+| Chat, 7 questions in a row, with a temporary log of how many messages reach the model | 1, 3, 5, 7, 9, 9, 9. From question 6 on, the last 10 messages start with an assistant message, which is dropped. |
+| Chat, provider busy | A real 503 from Gemini showed "Something went wrong. Please try again." and a Retry button. |
+
+### Week 5 gate
+
+Partly checked.
+- A small automated test suite exists: done (37 tests).
+- A stranger can trigger a common error, recover and understand what is happening: the failure table covers each case, but the full self-check (trigger and recover from each failure, explain what the tests cover, show where validation happens) is still to do.
+- No client-exposed API key: checked with `git grep`. The key name appears only in README text, there is no `NEXT_PUBLIC` variable, `@ai-sdk/google` is imported only in `lib/critique.ts` and `app/api/chat/route.ts`, and `lib/critique.ts` is imported only by the critique route.
