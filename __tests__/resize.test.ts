@@ -1,4 +1,4 @@
-import { scaleToFit } from "@/lib/resize";
+import { needsResize, scaleToFit } from "@/lib/resize";
 import { describe, it, expect } from "vitest";
 
 describe("scaleToFit", () => {
@@ -21,4 +21,20 @@ describe("scaleToFit", () => {
     it("rounds a fraction above .5 up (1332.67 becomes 1333)", () => {
         expect(scaleToFit(3000, 1999, 2000)).toEqual({ width: 2000, height: 1333 });
     });
+});
+
+
+describe("needsResize", () => {
+    it("returns false if the size is less than the target", () => {
+        expect(needsResize(3000000, 4000000)).toBe(false);
+    });
+
+    it("returns false if the size is equal to the target", () => {
+        expect(needsResize(4000000, 4000000)).toBe(false);
+    });
+
+    it("returns true if the size is greater than the target", () => {
+        expect(needsResize(4000001, 4000000)).toBe(true);
+    });
+
 });

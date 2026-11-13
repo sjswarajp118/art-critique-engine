@@ -15,3 +15,7 @@ export function scaleToFit(width: number, height: number, maxSide: number) {
     const newHeight = Math.round(height * scale);
     return { width: newWidth, height: newHeight };
 }
+
+export function needsResize(size: number, targetSize: number): boolean {
+    return size > targetSize;
+}
