@@ -19,3 +19,7 @@ export function scaleToFit(width: number, height: number, maxSide: number) {
 export function needsResize(size: number, targetSize: number): boolean {
     return size > targetSize;
 }
+
+export function jpegName(fileName: string): string {
+    return fileName.replace(/\.[^/.]+$/, "") + ".jpg";
+}

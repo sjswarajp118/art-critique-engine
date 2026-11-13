@@ -1,4 +1,4 @@
-import { needsResize, scaleToFit } from "@/lib/resize";
+import { jpegName, needsResize, scaleToFit } from "@/lib/resize";
 import { describe, it, expect } from "vitest";
 
 describe("scaleToFit", () => {
@@ -38,3 +38,18 @@ describe("needsResize", () => {
     });
 
 });
+
+describe("jpegName", () => {
+    it("converts a PNG filename to a JPEG filename", () => {
+        expect(jpegName("image.png")).toBe("image.jpg");
+    });
+    it("replaces a JPEG extension with a JPG extension", () => {
+        expect(jpegName("my.sketch.jpeg")).toBe("my.sketch.jpg");
+    });
+    it("handles a file name without an extension", () => {
+        expect(jpegName("scan")).toBe("scan.jpg");
+    });
+    it("handles a jpg extension", () => {
+        expect(jpegName("scan.jpg")).toBe("scan.jpg");
+    });
+})
